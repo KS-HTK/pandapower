@@ -7,8 +7,9 @@
 from time import perf_counter
 
 from numpy import flatnonzero as find, r_, zeros, argmax, setdiff1d, union1d, any, int32, \
-    sum as np_sum, abs as np_abs, int64
+    int64
 
+from pandapower.auxiliary import version_check
 from pandapower.pf.ppci_variables import _get_pf_variables_from_ppci, _store_results_from_pf_in_ppci
 from pandapower.pf.run_dc_pf import _run_dc_pf
 from pandapower.pypower.bustypes import bustypes
@@ -19,11 +20,11 @@ from pandapower.pypower.makeYbus import makeYbus as makeYbus_pypower
 from pandapower.pypower.newtonpf import newtonpf
 from pandapower.pypower.pfsoln import _update_v
 from pandapower.pypower.pfsoln import pfsoln as pfsoln_pypower
-from pandapower.auxiliary import version_check
 
 try:
     from pandapower.pf.makeYbus_numba import makeYbus as makeYbus_numba
     from pandapower.pf.pfsoln_numba import pfsoln as pfsoln_numba, pf_solution_single_slack
+
     version_check('numba')
     numba_installed = True
 except ImportError:
@@ -94,7 +95,8 @@ def ppci_to_pfsoln(ppci, options, limited_gens=None):
         # todo: this can be dropped if Ybus is returned from Newton and has the latest Ybus status:
         if options["tdpf"]:
             # needs to be updated to match the new R because of the temperature
-            internal["Ybus"], internal["Yf"], internal["Yt"] = makeYbus(internal["baseMVA"], internal["bus"], internal["branch"])
+            internal["Ybus"], internal["Yf"], internal["Yt"] = makeYbus(internal["baseMVA"], internal["bus"],
+                                                                        internal["branch"])
 
         # todo: here Ybus_svc, Ybus_tcsc must be used (Ybus = Ybus + Ybus_svc + Ybus_tcsc)
         result_pfsoln = pfsoln(internal["baseMVA"], internal["bus"], internal["gen"], internal["branch"],
@@ -161,17 +163,18 @@ def _run_ac_pf_without_qlims_enforced(ppci, options):
     # compute complex bus power injections [generation - load]
     Sbus = _get_Sbus(ppci, options["recycle"])
 
-
     # run the newton power flow
     if options["lightsim2grid"]:
         V, success, iterations, J, Vm_it, Va_it = newton_ls(Ybus.tocsc(), Sbus, V0, ref, pv, pq, ppci, options)
         T = None
         r_theta_kelvin_per_mw = None
     else:
-        V, success, iterations, J, Vm_it, Va_it, r_theta_kelvin_per_mw, T = newtonpf(Ybus, Sbus, V0, ref, pv, pq, ppci, options, makeYbus)
+        V, success, iterations, J, Vm_it, Va_it, r_theta_kelvin_per_mw, T = newtonpf(Ybus, Sbus, V0, ref, pv, pq, ppci,
+                                                                                     options, makeYbus)
         # due to TPDF, SVC, TCSC, the Ybus matrices can be updated in the newtonpf and stored in ppci["internal"],
         # so we extract them here for later use:
-        Ybus, Ybus_svc, Ybus_tcsc, Ybus_ssc = (ppci["internal"].get(key) for key in ("Ybus", "Ybus_svc", "Ybus_tcsc", "Ybus_ssc"))
+        Ybus, Ybus_svc, Ybus_tcsc, Ybus_ssc = (ppci["internal"].get(key) for key in
+                                               ("Ybus", "Ybus_svc", "Ybus_tcsc", "Ybus_ssc"))
         Ybus = Ybus + Ybus_svc + Ybus_tcsc + Ybus_ssc
 
     # keep "internal" variables in  memory / net["_ppc"]["internal"] -> needed for recycle.

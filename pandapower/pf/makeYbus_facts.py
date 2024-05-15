@@ -41,13 +41,10 @@ def makeYbus_ssc(Ybus, ssc_y_pu, ssc_fb, ssc_tb, any_ssc):
     Ybus_ssc = np.zeros(Ybus.shape, dtype=np.complex128)
 
     if any_ssc:
-
         # size_y = Ybus.shape[0]
         # K_Y = vstack([eye(size_y, format="csr"),
         #               csr_matrix((num_ssc, size_y))], format="csr")
         # Ybus = K_Y * Ybus * K_Y.T  # this extends the Ybus matrix with 0-rows and 0-columns for the "q"-bus of SSC
-
-
 
         # for y_tcsc_pu_i, i, j in zip(Y_TCSC, tcsc_fb, tcsc_tb):
         #     Ybus_tcsc[i, i] += y_tcsc_pu_i
@@ -92,5 +89,6 @@ def calc_y_svc(x_control, svc_x_l_pu, svc_x_cvar_pu, v_base_kv, baseMVA):
 
 
 def calc_y_svc_pu(x_control, svc_x_l_pu, svc_x_cvar_pu):
-    y_svc = (2 * (np.pi - x_control) + np.sin(2 * x_control) + np.pi * svc_x_l_pu / svc_x_cvar_pu) / (np.pi * svc_x_l_pu)
+    y_svc = (2 * (np.pi - x_control) + np.sin(2 * x_control) + np.pi * svc_x_l_pu / svc_x_cvar_pu) / (
+                np.pi * svc_x_l_pu)
     return y_svc

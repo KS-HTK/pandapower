@@ -12,8 +12,9 @@
 """
 
 from numpy import conj, zeros, complex128, abs, float64, sqrt, real, isin, arange
-from numpy import finfo, c_, flatnonzero as find, setdiff1d, r_, int64
+from numpy import finfo, c_, flatnonzero as find, setdiff1d, int64
 
+from pandapower.auxiliary import version_check
 from pandapower.pypower.idx_brch import F_BUS, T_BUS, PF, PT, QF, QT
 from pandapower.pypower.idx_bus import PD, QD
 from pandapower.pypower.idx_gen import GEN_BUS, GEN_STATUS, PG, QG
@@ -21,10 +22,10 @@ from pandapower.pypower.idx_ssc import SSC_Q
 from pandapower.pypower.idx_svc import SVC_Q
 from pandapower.pypower.idx_tcsc import TCSC_QF, TCSC_QT
 from pandapower.pypower.pfsoln import _update_v, _update_q, _update_p
-from pandapower.auxiliary import version_check
 
 try:
     from numba import jit
+
     version_check('numba')
 except ImportError:
     from pandapower.pf.no_numba import jit

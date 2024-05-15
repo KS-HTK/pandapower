@@ -3,10 +3,12 @@
 # Copyright (c) 2016-2024 by University of Kassel and Fraunhofer Institute for Energy Economics
 # and Energy System Technology (IEE), Kassel. All rights reserved.
 
+from numpy import flatnonzero as find, pi, exp, int64
+
+from pandapower.pypower.bustypes import bustypes
 from pandapower.pypower.idx_bus import VM, VA
 from pandapower.pypower.idx_gen import GEN_BUS, GEN_STATUS, VG
-from pandapower.pypower.bustypes import bustypes
-from numpy import flatnonzero as find, pi, exp, int64
+
 
 def _get_pf_variables_from_ppci(ppci):
     ## default arguments

@@ -11,6 +11,8 @@
 # DEBUG = True
 
 from numba import jit
+
+
 # import numba as nb
 
 # numpy is only used for debugging
@@ -250,11 +252,11 @@ def create_J_ds(dVm_x, dVa_x, Yp, Yj, pvpq_lookup, refpvpq, pvpq, pq, Jx, Jj, Jp
             lookup_idx = refpvpq[cc]
             # skip if in the "ref" columns:
             skip = False
-            for refcol in range(lref): # this loop is way faster
+            for refcol in range(lref):  # this loop is way faster
                 if lookup_idx == refpvpq[refcol]:
                     skip = True
                     break
-            if lookup_idx == bus_idx and not skip:# and lookup_idx in pvpq:  # too slow
+            if lookup_idx == bus_idx and not skip:  # and lookup_idx in pvpq:  # too slow
                 # entry found
                 # equals entry of J11: J[r,cc] = dVa_x[c].real
                 col = cc
@@ -285,11 +287,11 @@ def create_J_ds(dVm_x, dVa_x, Yp, Yj, pvpq_lookup, refpvpq, pvpq, pq, Jx, Jj, Jp
             cc = pvpq_lookup[bus_idx]
             lookup_idx = refpvpq[cc]
             skip = False
-            for refcol in range(lref): # this loop is way faster
+            for refcol in range(lref):  # this loop is way faster
                 if lookup_idx == refpvpq[refcol]:
                     skip = True
                     break
-            if lookup_idx == bus_idx and not skip:# and lookup_idx in pvpq:   # too slow
+            if lookup_idx == bus_idx and not skip:  # and lookup_idx in pvpq:   # too slow
                 # entry found
                 # equals entry of J21: J[r + lpvpq, cc] = dVa_x[c].imag
                 col = cc

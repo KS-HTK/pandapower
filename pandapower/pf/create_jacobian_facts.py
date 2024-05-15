@@ -6,6 +6,7 @@
 
 import numpy as np
 from scipy.sparse import csr_matrix
+
 from pandapower.pf.makeYbus_facts import calc_y_svc_pu
 
 
@@ -237,7 +238,6 @@ def create_J_modification_ssc(J, V, Ybus_ssc, f, t, pvpq, pq, pvpq_lookup, pq_lo
     # S_ij = Sbus[f] - S_ii
     # S_kj = Sbus[t] - S_kk
 
-
     f_in_pq = np.isin(f, pq)
     f_in_pvpq = np.isin(f, pvpq)
 
@@ -257,9 +257,8 @@ def create_J_modification_ssc(J, V, Ybus_ssc, f, t, pvpq, pq, pvpq_lookup, pq_lo
 
         J_m[pvpq_lookup[f[f_in_pvpq]], pvpq_lookup[f[f_in_pvpq]]] = -S_Fik.imag
         J_m[pvpq_lookup[f[f_in_pvpq]], pvpq_lookup[t[f_in_pvpq]]] = S_Fik.imag
-        J_m[pvpq_lookup[t[f_in_pvpq]] , pvpq_lookup[f[f_in_pvpq]]] = S_Fki.imag
-        J_m[pvpq_lookup[t[f_in_pvpq]] , pvpq_lookup[t[f_in_pvpq]]] = -S_Fki.imag
-
+        J_m[pvpq_lookup[t[f_in_pvpq]], pvpq_lookup[f[f_in_pvpq]]] = S_Fki.imag
+        J_m[pvpq_lookup[t[f_in_pvpq]], pvpq_lookup[t[f_in_pvpq]]] = -S_Fki.imag
 
     # J_C_P_u = np.zeros(shape=(len(pvpq), len(pq)), dtype=np.float64)
     # J_C_P_u = np.zeros(shape=(len(pvpq)+ len(x_control), len(pq)+ len(x_control)), dtype=np.float64)
@@ -271,11 +270,10 @@ def create_J_modification_ssc(J, V, Ybus_ssc, f, t, pvpq, pq, pvpq_lookup, pq_lo
         # J_C_P_u[pvpq_lookup[t[f_in_pvpq]], pq_lookup[f[f_in_pq]]] = S_Fki.real/Vmf
         # J_C_P_u[pvpq_lookup[t[f_in_pvpq]], pq_lookup[t[f_in_pq]]] = (2 * S_Fkk.real + S_Fki.real) / Vmt
 
-        J_m[pvpq_lookup[f[f_in_pvpq]], len(pvpq)+pq_lookup[f[f_in_pq]]] = (2 * S_Fii.real + S_Fik.real) / Vmf
-        J_m[pvpq_lookup[f[f_in_pvpq]], len(pvpq)+pq_lookup[t[f_in_pq]] ] = S_Fik.real/Vmt
-        J_m[pvpq_lookup[t[f_in_pvpq]], len(pvpq)+pq_lookup[f[f_in_pq]]] = S_Fki.real/Vmf
-        J_m[pvpq_lookup[t[f_in_pvpq]], len(pvpq)+pq_lookup[t[f_in_pq]]] = (2 * S_Fkk.real + S_Fki.real) / Vmt
-
+        J_m[pvpq_lookup[f[f_in_pvpq]], len(pvpq) + pq_lookup[f[f_in_pq]]] = (2 * S_Fii.real + S_Fik.real) / Vmf
+        J_m[pvpq_lookup[f[f_in_pvpq]], len(pvpq) + pq_lookup[t[f_in_pq]]] = S_Fik.real / Vmt
+        J_m[pvpq_lookup[t[f_in_pvpq]], len(pvpq) + pq_lookup[f[f_in_pq]]] = S_Fki.real / Vmf
+        J_m[pvpq_lookup[t[f_in_pvpq]], len(pvpq) + pq_lookup[t[f_in_pq]]] = (2 * S_Fkk.real + S_Fki.real) / Vmt
 
     # J_C_Q_d = np.zeros(shape=(len(pq), len(pvpq)), dtype=np.float64)
     # J_C_Q_d = np.zeros(shape=(len(pq)+ len(x_control), len(pvpq)+ len(x_control)), dtype=np.float64)
@@ -289,8 +287,6 @@ def create_J_modification_ssc(J, V, Ybus_ssc, f, t, pvpq, pq, pvpq_lookup, pq_lo
         J_m[len(pvpq) + pq_lookup[f[f_in_pq]], pvpq_lookup[f[f_in_pvpq]]] = S_Fik.real
         J_m[len(pvpq) + pq_lookup[f[f_in_pq]], pvpq_lookup[t[f_in_pvpq]]] = -S_Fik.real
 
-
-
     # J_C_Q_u = np.zeros(shape=(len(pq), len(pq)), dtype=np.float64)
     # J_C_Q_u = np.zeros(shape=(len(pq)+ len(x_control), len(pq)+ len(x_control)), dtype=np.float64)
     if np.any(f_in_pq):
@@ -300,10 +296,10 @@ def create_J_modification_ssc(J, V, Ybus_ssc, f, t, pvpq, pq, pvpq_lookup, pq_lo
         # J_C_Q_u[pq_lookup[t[f_in_pq]], pq_lookup[f[f_in_pq]]] = 1
         # J_C_Q_u[pq_lookup[t[f_in_pq]], pq_lookup[t[f_in_pq]]] = 0
 
-        J_m[len(pvpq)+pq_lookup[f[f_in_pq]], len(pvpq)+pq_lookup[f[f_in_pq]]] = (2 * S_Fii.imag + S_Fik.imag) / Vmf
-        J_m[len(pvpq)+pq_lookup[f[f_in_pq]], len(pvpq)+pq_lookup[t[f_in_pq]]] = S_Fik.imag/Vmt
-        J_m[len(pvpq)+pq_lookup[t[f_in_pq]], len(pvpq)+pq_lookup[f[f_in_pq]]] = 1
-        J_m[len(pvpq)+pq_lookup[t[f_in_pq]], len(pvpq)+pq_lookup[t[f_in_pq]]] = 0
+        J_m[len(pvpq) + pq_lookup[f[f_in_pq]], len(pvpq) + pq_lookup[f[f_in_pq]]] = (2 * S_Fii.imag + S_Fik.imag) / Vmf
+        J_m[len(pvpq) + pq_lookup[f[f_in_pq]], len(pvpq) + pq_lookup[t[f_in_pq]]] = S_Fik.imag / Vmt
+        J_m[len(pvpq) + pq_lookup[t[f_in_pq]], len(pvpq) + pq_lookup[f[f_in_pq]]] = 1
+        J_m[len(pvpq) + pq_lookup[t[f_in_pq]], len(pvpq) + pq_lookup[t[f_in_pq]]] = 0
         #
         # J_C_Q_u[pq_lookup[t[f_in_pq]]+ len(x_control), pq_lookup[f[f_in_pq]]] = 1
         # J_C_Q_u[pq_lookup[t[f_in_pq]]+ len(x_control), pq_lookup[t[f_in_pq]]+ len(x_control)] = 0
@@ -313,8 +309,6 @@ def create_J_modification_ssc(J, V, Ybus_ssc, f, t, pvpq, pq, pvpq_lookup, pq_lo
     # J_C_C_d = np.zeros(shape=(nsvc + ntcsc + 2 * nssc, len(pvpq)), dtype=np.float64)
     # J_C_C_u = np.zeros(shape=(nsvc + ntcsc + 2 * nssc, len(pq)), dtype=np.float64)
     # J_C_C_c = np.zeros(shape=(nsvc + ntcsc + 2 *nssc, nsvc + ntcsc + 2 *nssc), dtype=np.float64)
-
-
 
     # if np.any(tcsc_controllable) or np.any(svc_controllable):  # todo
     #     relevant = np.r_[np.arange(nsvc), nsvc + np.arange(ntcsc)[tcsc_controllable]]
@@ -329,4 +323,3 @@ def create_J_modification_ssc(J, V, Ybus_ssc, f, t, pvpq, pq, pvpq_lookup, pq_lo
     J_m = csr_matrix(J_m)
 
     return J_m
-

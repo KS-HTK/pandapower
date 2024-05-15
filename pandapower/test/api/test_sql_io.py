@@ -3,23 +3,20 @@
 # Copyright (c) 2016-2024 by University of Kassel and Fraunhofer Institute for Energy Economics
 # and Energy System Technology (IEE), Kassel. All rights reserved.
 
+import copy
 import json
 import os
-import tempfile
-import copy
-
-import pandas as pd
-import pandas.testing as pdt
-import numpy as np
-import pytest
 import time
 
+import numpy as np
+import pandas as pd
+import pandas.testing as pdt
+import pytest
+
 import pandapower as pp
-import pandapower.networks
-import pandapower.control
-from pandapower.plotting.geo import convert_geodata_to_geojson
 from pandapower import pp_dir
 from pandapower.auxiliary import _preserve_dtypes
+from pandapower.plotting.geo import convert_geodata_to_geojson
 from pandapower.sql_io import download_sql_table
 from pandapower.test import assert_res_equal
 

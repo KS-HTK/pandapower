@@ -284,6 +284,7 @@ def test_create_buses():
     for i, ind in enumerate(b3):
         assert net.bus.at[ind, "geo"] == geojson.dumps(geojson.Point(geodata[i]), sort_keys=True)
 
+
 def test_create_lines():
     # standard
     net = pp.create_empty_network()

@@ -4,19 +4,18 @@
 # and Energy System Technology (IEE), Kassel. All rights reserved.
 
 
-
 from time import perf_counter
 
 import numpy as np
 from numpy import pi, zeros, real, bincount
 
-from pandapower.pypower.idx_brch import PF, PT, QF, QT, SHIFT, BR_STATUS, BR_X, TAP
+from pandapower.pf.ppci_variables import _get_pf_variables_from_ppci, _store_results_from_pf_in_ppci
+from pandapower.pypower.dcpf import dcpf
+from pandapower.pypower.idx_brch import PF, PT, QF, QT, SHIFT, TAP
 from pandapower.pypower.idx_bus import VA, GS
 from pandapower.pypower.idx_gen import PG, GEN_BUS
-from pandapower.pypower.dcpf import dcpf
 from pandapower.pypower.makeBdc import makeBdc, phase_shift_injection, calc_b_from_branch
 from pandapower.pypower.makeSbus import makeSbus
-from pandapower.pf.ppci_variables import _get_pf_variables_from_ppci, _store_results_from_pf_in_ppci
 
 
 def _run_dc_pf(ppci, recycle=False):
@@ -90,10 +89,11 @@ def _run_dc_pf(ppci, recycle=False):
     ##      newPg = oldPg + newPinj - oldPinj
 
     ## ext_grid (ref_gens) buses
-    refgenbus=gen[ref_gens, GEN_BUS].astype(np.int64)
+    refgenbus = gen[ref_gens, GEN_BUS].astype(np.int64)
     ## number of ext_grids (ref_gens) at those buses
-    ext_grids_bus=bincount(refgenbus)
-    gen[ref_gens, PG] = real(gen[ref_gens, PG] + (B[refgenbus, :] * Va - Pbus[refgenbus]) * baseMVA / ext_grids_bus[refgenbus])
+    ext_grids_bus = bincount(refgenbus)
+    gen[ref_gens, PG] = real(
+        gen[ref_gens, PG] + (B[refgenbus, :] * Va - Pbus[refgenbus]) * baseMVA / ext_grids_bus[refgenbus])
 
     # store results from DC powerflow for AC powerflow
     et = perf_counter() - t0

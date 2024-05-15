@@ -8,28 +8,25 @@
 # and Energy System Technology (IEE), Kassel. All rights reserved.
 
 
-
 """Runs a power flow.
 """
 
 from time import perf_counter
-from packaging import version
+
 from numpy import flatnonzero as find, r_, zeros, argmax, real, setdiff1d, int64
 
-from pandapower.pypower.idx_bus import PD, QD, BUS_TYPE, PQ, REF
-from pandapower.pypower.idx_gen import PG, QG, QMAX, QMIN, GEN_BUS, GEN_STATUS
-from pandapower.pypower.bustypes import bustypes
-from pandapower.pypower.makeSbus import makeSbus
-from pandapower.pypower.pfsoln import pfsoln
-from pandapower.pf.run_newton_raphson_pf import _run_dc_pf
+from pandapower.auxiliary import _check_if_numba_is_installed
 from pandapower.pf.ppci_variables import _get_pf_variables_from_ppci, _store_results_from_pf_in_ppci
-
-from pandapower.pypower.makeB import makeB
-from pandapower.pypower.ppoption import ppoption
+from pandapower.pf.run_newton_raphson_pf import _run_dc_pf
+from pandapower.pypower.bustypes import bustypes
 from pandapower.pypower.fdpf import fdpf
 from pandapower.pypower.gausspf import gausspf
-
-from pandapower.auxiliary import _check_if_numba_is_installed
+from pandapower.pypower.idx_bus import PD, QD, BUS_TYPE, PQ, REF
+from pandapower.pypower.idx_gen import PG, QG, QMAX, QMIN, GEN_BUS, GEN_STATUS
+from pandapower.pypower.makeB import makeB
+from pandapower.pypower.makeSbus import makeSbus
+from pandapower.pypower.pfsoln import pfsoln
+from pandapower.pypower.ppoption import ppoption
 
 try:
     import pandaplan.core.pplog as logging
@@ -157,7 +154,6 @@ def _run_ac_pf_with_qlims_enforced(ppci, recycle, makeYbus, ppopt):
         non_refs = (gen[:, QMAX] != 0.) & (gen[:, QMIN] != 0.)
         mx = find(gen_status & qg_max_lim & non_refs)
         mn = find(gen_status & qg_min_lim & non_refs)
-
 
         if len(mx) > 0 or len(mn) > 0:  ## we have some Q limit violations
             ## one at a time?

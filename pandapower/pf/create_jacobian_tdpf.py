@@ -6,8 +6,9 @@
 
 import numpy as np
 from scipy.sparse import csr_matrix as sparse, eye, vstack, hstack
-from pandapower.pypower.idx_bus import BASE_KV
+
 from pandapower.pypower.idx_brch import F_BUS, T_BUS, BR_STATUS
+from pandapower.pypower.idx_bus import BASE_KV
 
 SIGMA = 5.670374419e-8
 # ALPHA = 4.03e-3
@@ -292,7 +293,7 @@ def calc_h_c(conductor_outer_diameter_m, v_m_per_s, wind_angle_degree, t_air_deg
     rho_air = 101325 / (287.058 * (t_air_degree_celsius + 273))  # pressure 1 atm. / (R_specific * T)
     rho_air_relative = 1.  # relative air density
     # r_f = 0.05 # roughness of conductors
-    r_f = 0.1 # roughness of conductors
+    r_f = 0.1  # roughness of conductors
     w = rho_air * conductor_outer_diameter_m * v_m_per_s
 
     K = np.where(v_m_per_s < 0.5, 0.55,
@@ -309,6 +310,7 @@ def calc_h_c(conductor_outer_diameter_m, v_m_per_s, wind_angle_degree, t_air_deg
     h_c = np.maximum(np.maximum(h_cfl, h_cfh), h_cn)
 
     return h_c
+
 
 #
 # def calc_a0_a1_a2_old(t_air_degree_celsius, t_max, r_ref_ohm_per_m, conductor_outer_diameter_m, v_m_per_s, wind_angle_degree, s_w_per_square_meter=300, alpha=ALPHA, solar_absorptivity=0.5, emissivity=0.5):
@@ -433,6 +435,7 @@ def get_S_flows(branch, Yf, Yt, baseMVA, V):
     t_bus = np.real(branch[br, T_BUS]).astype(np.int64)
     St = V[t_bus] * np.conj(Yt[br, :] * V) * baseMVA
     return Sf, St, f_bus, t_bus
+
 
 #
 # def calc_AB(branch, tdpf_lines, pvpq, pvpq_lookup, Va, Vm):
@@ -659,7 +662,8 @@ def create_J31(branch, tdpf_lines, in_pvpq_f, in_pvpq_t, pvpq, pvpq_lookup, Vm, 
 
     for in_pvpq, m, n in ((in_pvpq_f, mf, nf), (in_pvpq_t, mt, nt)):
         pq_j = pvpq_lookup[m]
-        J31[tdpf_lines[in_pvpq], pq_j] = - 2 * r_theta_pu[in_pvpq] * g[in_pvpq] * Vm[m] * Vm[n] * np.sin(Va[m] - Va[n]) * C[in_pvpq]
+        J31[tdpf_lines[in_pvpq], pq_j] = - 2 * r_theta_pu[in_pvpq] * g[in_pvpq] * Vm[m] * Vm[n] * np.sin(
+            Va[m] - Va[n]) * C[in_pvpq]
 
     return J31
 
@@ -720,7 +724,8 @@ def create_J32(branch, tdpf_lines, in_pq_f, in_pq_t, pq, pq_lookup, Vm, Va, C, r
 
     for in_pq, m, n in ((in_pq_f, mf, nf), (in_pq_t, mt, nt)):
         pq_j = pq_lookup[m]
-        J32[tdpf_lines[in_pq], pq_j] = - 2 * r_theta_pu[in_pq] * g[in_pq] * (Vm[m] - Vm[n] * np.cos(Va[m] - Va[n])) * C[in_pq]
+        J32[tdpf_lines[in_pq], pq_j] = - 2 * r_theta_pu[in_pq] * g[in_pq] * (Vm[m] - Vm[n] * np.cos(Va[m] - Va[n])) * C[
+            in_pq]
 
     return J32
 
@@ -760,7 +765,7 @@ def create_J33(branch, tdpf_lines, r_theta_pu, Vm, Va, dg_dT):
     # k = (np.square(g) + np.square(b)) / g
     # p_loss_pu = i_square_pu / k
 
-    #for mn in range(nrow):
+    # for mn in range(nrow):
     # for mn in tdpf_lines:
     #     #for ij in range(nrow):
     #     for ij_lookup, ij in enumerate(tdpf_lines):
@@ -769,7 +774,7 @@ def create_J33(branch, tdpf_lines, r_theta_pu, Vm, Va, dg_dT):
     #             # J33[mn, ij] = -(1 + 2 * alpha[ij_lookup] * r_ref[ij_lookup] * g[ij_lookup] * i_square_pu[ij_lookup])
     #             J33[mn, ij] = 1 - r_theta_pu[ij_lookup] * (Vm[i]**2 + Vm[j]**2 - 2*Vm[i]*Vm[j]*np.cos(Va[i]-Va[j])) * dg_dT[ij_lookup]
 
-    #use this instead:
+    # use this instead:
     # for ij_lookup, ij in enumerate(tdpf_lines):
     #    i, j = branch[ij, [F_BUS, T_BUS]].real.astype(np.int64)
     #    # J33[mn, ij] = -(1 + 2 * alpha[ij_lookup] * r_ref[ij_lookup] * g[ij_lookup] * i_square_pu[ij_lookup])
@@ -778,6 +783,7 @@ def create_J33(branch, tdpf_lines, r_theta_pu, Vm, Va, dg_dT):
     # vectorized with numpy:
     i = branch[tdpf_lines, F_BUS].real.astype(np.int64)
     j = branch[tdpf_lines, T_BUS].real.astype(np.int64)
-    J33[tdpf_lines, tdpf_lines] = 1 - r_theta_pu * (Vm[i] ** 2 + Vm[j] ** 2 - 2 * Vm[i] * Vm[j] * np.cos(Va[i] - Va[j])) * dg_dT
+    J33[tdpf_lines, tdpf_lines] = 1 - r_theta_pu * (
+                Vm[i] ** 2 + Vm[j] ** 2 - 2 * Vm[i] * Vm[j] * np.cos(Va[i] - Va[j])) * dg_dT
 
     return J33

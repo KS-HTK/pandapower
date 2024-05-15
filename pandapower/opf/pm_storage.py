@@ -1,5 +1,5 @@
-import numpy as np
 import pandas as pd
+
 
 def add_storage_opf_settings(net, ppci, pm):
     # callback function to add storage settings. Must be called after initializing pm data structure since the
@@ -34,23 +34,23 @@ def add_storage_opf_settings(net, ppci, pm):
         pm["storage"][str(pm_idx)] = {
             "index": pm_idx,
             "storage_bus": bus_lookup[net["storage"].at[idx, "bus"]].item(),
-			"ps": ps, #* pm["baseMVA"],
-            "qs": qs, #* pm["baseMVA"],            
+            "ps": ps,  # * pm["baseMVA"],
+            "qs": qs,  # * pm["baseMVA"],
             "energy": energy,
-			"energy_rating": net["storage"].at[idx, "max_e_mwh"],
-			"charge_rating": max_p_mw,
-			"discharge_rating": max_p_mw,
-			"charge_efficiency": 1.,
-			"discharge_efficiency": 1.0,
-	        "thermal_rating": net["storage"].at[idx, "max_e_mwh"], # Todo: include in DataFrame?
+            "energy_rating": net["storage"].at[idx, "max_e_mwh"],
+            "charge_rating": max_p_mw,
+            "discharge_rating": max_p_mw,
+            "charge_efficiency": 1.,
+            "discharge_efficiency": 1.0,
+            "thermal_rating": net["storage"].at[idx, "max_e_mwh"],  # Todo: include in DataFrame?
             "qmax": max_q_mvar,
             "qmin": min_q_mvar,
             "r": 0.0,
-			"x": 0.,       
-			"p_loss":-1e-8,
-			"q_loss":-1e-8,			
-			"status": int(net["storage"].at[idx, "in_service"]),
-			"standby_loss": 0.
+            "x": 0.,
+            "p_loss": -1e-8,
+            "q_loss": -1e-8,
+            "status": int(net["storage"].at[idx, "in_service"]),
+            "standby_loss": 0.
         }
 
 

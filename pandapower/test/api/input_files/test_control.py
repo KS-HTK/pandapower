@@ -19,6 +19,7 @@ class MyTestControl(ConstController):
         obj = super().__new__(cls)
         return obj
 
+
 class ConstControl(ConstController):
 
     def is_converged(self, net):

@@ -4,27 +4,29 @@
 # and Energy System Technology (IEE), Kassel. All rights reserved.
 
 from time import perf_counter
+
 import numpy as np
 
-from pandapower.auxiliary import _sum_by_group, _check_if_numba_is_installed,\
-    _check_bus_index_and_print_warning_if_high,\
+from pandapower.auxiliary import _sum_by_group, _check_if_numba_is_installed, \
+    _check_bus_index_and_print_warning_if_high, \
     _check_gen_index_and_print_warning_if_high, \
     _add_pf_options, _add_ppc_options, _clean_up, sequence_to_phase, \
     phase_to_sequence, X012_to_X0, X012_to_X2, \
-    I1_from_V012, S_from_VI_elementwise, V1_from_ppc, V_from_I,\
+    I1_from_V012, S_from_VI_elementwise, V1_from_ppc, V_from_I, \
     combine_X012, I0_from_V012, I2_from_V012, ppException
-from pandapower.powerflow import LoadflowNotConverged
 from pandapower.build_bus import _add_ext_grid_sc_impedance
-from pandapower.pypower.pfsoln import pfsoln
-from pandapower.pypower.idx_gen import PG, QG, GEN_BUS
-from pandapower.pypower.idx_bus import GS, BS, PD, QD, VM, VA
 from pandapower.pd2ppc import _pd2ppc_recycle
-from pandapower.pypower.makeYbus import makeYbus
 from pandapower.pf.run_newton_raphson_pf import _run_newton_raphson_pf
+from pandapower.powerflow import LoadflowNotConverged
 from pandapower.pypower.bustypes import bustypes
-from pandapower.run import _passed_runpp_parameters
-from pandapower.results import _copy_results_ppci_to_ppc, _extract_results_3ph,\
+from pandapower.pypower.idx_bus import GS, BS, PD, QD, VM, VA
+from pandapower.pypower.idx_gen import PG, QG, GEN_BUS
+from pandapower.pypower.makeYbus import makeYbus
+from pandapower.pypower.pfsoln import pfsoln
+from pandapower.results import _copy_results_ppci_to_ppc, _extract_results_3ph, \
     init_results
+from pandapower.run import _passed_runpp_parameters
+
 try:
     import pandaplan.core.pplog as logging
 except ImportError:
@@ -62,7 +64,7 @@ def _store_results_from_pf_in_ppci(ppci, bus, gen, branch):
 def _get_elements(params, net, element, phase, typ):
     sign = -1 if element.endswith("sgen") else 1
     elm = net[element].values
-#   # Trying to find the column no for using numpy filters for active loads
+    #   # Trying to find the column no for using numpy filters for active loads
     scaling = net[element].columns.get_loc("scaling")
     typ_col = net[element].columns.get_loc("type")  # Type = Delta or Wye load
     # active wye or active delta row selection
@@ -73,12 +75,12 @@ def _get_elements(params, net, element, phase, typ):
             vl = elm[active, scaling].ravel()
             p_mw = [net[element].columns.get_loc("p_mw")]
             q_mvar = [net[element].columns.get_loc("q_mvar")]
-            params['p'+phase+typ] = np.hstack([params['p'+phase+typ],
-                                               elm[active, p_mw]/3 * vl * sign])
-            params['q'+phase+typ] = np.hstack([params['q'+phase+typ],
-                                               (elm[active, q_mvar]/3) * vl * sign])
-            params['b'+typ] = np.hstack([params['b'+typ],
-                                         elm[active, bus].astype(np.int64)])
+            params['p' + phase + typ] = np.hstack([params['p' + phase + typ],
+                                                   elm[active, p_mw] / 3 * vl * sign])
+            params['q' + phase + typ] = np.hstack([params['q' + phase + typ],
+                                                   (elm[active, q_mvar] / 3) * vl * sign])
+            params['b' + typ] = np.hstack([params['b' + typ],
+                                           elm[active, bus].astype(np.int64)])
 
         elif element.startswith('asymmetric'):
             vl = elm[active, scaling].ravel()
@@ -91,12 +93,12 @@ def _get_elements(params, net, element, phase, typ):
                  'c': net[element].columns.get_loc("q_c_mvar")
                  }
 
-            params['p'+phase+typ] = np.hstack([params['p'+phase+typ],
-                                               elm[active, p[phase]] * vl * sign])
-            params['q'+phase+typ] = np.hstack([params['q'+phase+typ],
-                                               elm[active, q[phase]] * vl * sign])
-            params['b'+typ] = np.hstack([params['b'+typ],
-                                         elm[active, bus].astype(np.int64)])
+            params['p' + phase + typ] = np.hstack([params['p' + phase + typ],
+                                                   elm[active, p[phase]] * vl * sign])
+            params['q' + phase + typ] = np.hstack([params['q' + phase + typ],
+                                                   elm[active, q[phase]] * vl * sign])
+            params['b' + typ] = np.hstack([params['b' + typ],
+                                           elm[active, bus].astype(np.int64)])
     return params
 
 
@@ -111,30 +113,30 @@ def _load_mapping(net, ppci1):
     phases = ['a', 'b', 'c']
     load_types = ['wye', 'delta']
     load_elements = ['load', 'asymmetric_load', 'sgen', 'asymmetric_sgen']
-# =============================================================================
-#        Loop to initialize and feed s_abc wye and delta values
-# =============================================================================
+    # =============================================================================
+    #        Loop to initialize and feed s_abc wye and delta values
+    # =============================================================================
     for phase in phases:
         for typ in load_types:
-            params['S'+phase+typ] = (ppci1["bus"][:, PD] +
-                                     ppci1["bus"][:, QD]*1j)*0
-            params['p'+phase+typ] = np.array([])  # p values from loads/sgens
-            params['q'+phase+typ] = np.array([])  # q values from loads/sgens
-            params['P'+phase+typ] = np.array([])  # Aggregated Active Power
-            params['Q'+phase+typ] = np.array([])  # Aggregated reactive Power
-            params['b'+phase+typ] = np.array([], dtype=np.int64)  # bus map for phases
-            params['b'+typ] = np.array([], dtype=np.int64)  # aggregated bus map(s_abc)
+            params['S' + phase + typ] = (ppci1["bus"][:, PD] +
+                                         ppci1["bus"][:, QD] * 1j) * 0
+            params['p' + phase + typ] = np.array([])  # p values from loads/sgens
+            params['q' + phase + typ] = np.array([])  # q values from loads/sgens
+            params['P' + phase + typ] = np.array([])  # Aggregated Active Power
+            params['Q' + phase + typ] = np.array([])  # Aggregated reactive Power
+            params['b' + phase + typ] = np.array([], dtype=np.int64)  # bus map for phases
+            params['b' + typ] = np.array([], dtype=np.int64)  # aggregated bus map(s_abc)
             for element in load_elements:
                 _get_elements(params, net, element, phase, typ)
             # Mapping constant power loads to buses
-            if params['b'+typ].size:
-                params['b'+phase+typ] = bus_lookup[params['b'+typ]]
-                params['b'+phase+typ], params['P'+phase+typ],\
-                    params['Q'+phase+typ] = _sum_by_group(params['b'+phase+typ],
-                                                          params['p'+phase+typ],
-                                                          params['q'+phase+typ] * 1j)
-                params['S'+phase+typ][params['b'+phase+typ]] = \
-                    (params['P'+phase+typ] + params['Q'+phase+typ])
+            if params['b' + typ].size:
+                params['b' + phase + typ] = bus_lookup[params['b' + typ]]
+                params['b' + phase + typ], params['P' + phase + typ], \
+                    params['Q' + phase + typ] = _sum_by_group(params['b' + phase + typ],
+                                                              params['p' + phase + typ],
+                                                              params['q' + phase + typ] * 1j)
+                params['S' + phase + typ][params['b' + phase + typ]] = \
+                    (params['P' + phase + typ] + params['Q' + phase + typ])
     Sabc_del = np.vstack((params['Sadelta'], params['Sbdelta'], params['Scdelta']))
     Sabc_wye = np.vstack((params['Sawye'], params['Sbwye'], params['Scwye']))
     # last return varaible left for constant impedance loads
@@ -366,16 +368,16 @@ def runpp_3ph(net, calculate_voltage_angles=True, init="auto",
 
     ac = True
     mode = "pf_3ph"  # TODO: Make valid modes (pf, pf_3ph, se, etc.) available in seperate file (similar to idx_bus.py)
-#    v_debug = kwargs.get("v_debug", False)
+    #    v_debug = kwargs.get("v_debug", False)
     copy_constraints_to_ppc = False
     if trafo_model == 'pi':
         raise Not_implemented("Three phase Power Flow doesnot support pi model because of lack of accuracy")
-#    if calculate_voltage_angles == "auto":
-#        calculate_voltage_angles = False
-#        hv_buses = np.where(net.bus.vn_kv.values > 70)[0]  # Todo: Where does that number come from?
-#        if len(hv_buses) > 0:
-#            line_buses = net.line[["from_bus", "to_bus"]].values.flatten()
-#            if len(set(net.bus.index[hv_buses]) & set(line_buses)) > 0:
+    #    if calculate_voltage_angles == "auto":
+    #        calculate_voltage_angles = False
+    #        hv_buses = np.where(net.bus.vn_kv.values > 70)[0]  # Todo: Where does that number come from?
+    #        if len(hv_buses) > 0:
+    #            line_buses = net.line[["from_bus", "to_bus"]].values.flatten()
+    #            if len(set(net.bus.index[hv_buses]) & set(line_buses)) > 0:
     # scipy spsolve options in NR power flow
     use_umfpack = kwargs.get("use_umfpack", True)
     permc_spec = kwargs.get("permc_spec", None)
@@ -417,23 +419,23 @@ def runpp_3ph(net, calculate_voltage_angles=True, init="auto",
 
     _, ppci0 = _pd2ppc_recycle(net, 0, recycle=recycle)
 
-    _,        bus0, gen0, branch0,      _,      _,      _ = _get_pf_variables_from_ppci(ppci0)
-    base_mva, bus1, gen1, branch1, sl_bus,      _, pq_bus = _get_pf_variables_from_ppci(ppci1)
-    _,        bus2, gen2, branch2,      _,      _,      _ = _get_pf_variables_from_ppci(ppci2)
+    _, bus0, gen0, branch0, _, _, _ = _get_pf_variables_from_ppci(ppci0)
+    base_mva, bus1, gen1, branch1, sl_bus, _, pq_bus = _get_pf_variables_from_ppci(ppci1)
+    _, bus2, gen2, branch2, _, _, _ = _get_pf_variables_from_ppci(ppci2)
 
     # initialize the results after the conversion to ppc is done, otherwise init=results does not work
     init_results(net, "pf_3ph")
 
-# =============================================================================
-#     P Q values aggragated and summed up for each bus to make s_abc matrix
-#     s_abc for wye connections ; s_abc_delta for delta connection
-# =============================================================================
+    # =============================================================================
+    #     P Q values aggragated and summed up for each bus to make s_abc matrix
+    #     s_abc for wye connections ; s_abc_delta for delta connection
+    # =============================================================================
     s_abc_delta, s_abc = _load_mapping(net, ppci1)
     # =========================================================================
     # Construct Sequence Frame Bus admittance matrices Ybus
     # =========================================================================
 
-    ppci0, ppci1, ppci2, y_0_pu, y_1_pu, y_2_pu, y_0_f, y_1_f, _,\
+    ppci0, ppci1, ppci2, y_0_pu, y_1_pu, y_2_pu, y_0_f, y_1_f, _, \
         y_0_t, y_1_t, _ = _get_y_bus(ppci0, ppci1, ppci2, recycle)
     # =========================================================================
     # Initial voltage values
@@ -477,7 +479,7 @@ def runpp_3ph(net, calculate_voltage_angles=True, init="auto",
 
         i_abc_it_wye = (np.divide(s_abc_pu, v_abc_it)).conjugate()
         i_abc_it_delta = np.matmul(i_del_xfmn, (np.divide(s_abc_delta_pu, np.matmul
-                                                          (v_del_xfmn, v_abc_it))).conjugate())
+        (v_del_xfmn, v_abc_it))).conjugate())
 
         # For buses with both delta and wye loads we need to sum of their currents
         # to sum up the currents
@@ -610,4 +612,3 @@ def _get_y_bus(ppci0, ppci1, ppci2, recycle):
             ppci2["internal"]['Ybus'], ppci2["internal"]['Yf'], ppci2["internal"]['Yt'] = y_2_bus, y_2_f, y_2_t
 
     return ppci0, ppci1, ppci2, y_0_bus, y_1_bus, y_2_bus, y_0_f, y_1_f, y_2_f, y_0_t, y_1_t, y_2_t
-

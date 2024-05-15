@@ -4,24 +4,23 @@
 # and Energy System Technology (IEE), Kassel. All rights reserved.
 
 
-
 from time import perf_counter  # alternatively use import timeit.default_timer as time
 
 import numpy as np
 import scipy as sp
+from scipy.sparse import csr_matrix, csgraph
+
+from pandapower.auxiliary import ppException
+from pandapower.pf.ppci_variables import _get_pf_variables_from_ppci
+from pandapower.pf.run_newton_raphson_pf import _get_Y_bus
+from pandapower.pf.runpf_pypower import _import_numba_extensions_if_flag_is_true
+from pandapower.pypower.bustypes import bustypes
 from pandapower.pypower.idx_brch import F_BUS, T_BUS, BR_R, BR_X, BR_B, TAP, BR_STATUS, SHIFT
 from pandapower.pypower.idx_bus import BUS_I, BUS_TYPE, GS, BS
 from pandapower.pypower.idx_gen import GEN_BUS, QG, QMAX, QMIN, GEN_STATUS, VG
 from pandapower.pypower.makeSbus import makeSbus
-from scipy.sparse import csr_matrix, csgraph
-
-from pandapower.auxiliary import ppException
-from pandapower.pypower.bustypes import bustypes
 from pandapower.pypower.newtonpf import _evaluate_Fx, _check_for_convergence
 from pandapower.pypower.pfsoln import pfsoln
-from pandapower.pf.run_newton_raphson_pf import _get_Y_bus
-from pandapower.pf.runpf_pypower import _import_numba_extensions_if_flag_is_true
-from pandapower.pf.ppci_variables import _get_pf_variables_from_ppci
 
 
 class LoadflowNotConverged(ppException):
@@ -171,13 +170,13 @@ def _get_bibc_bcbv(ppci, options, bus, branch, graph):
 
     if isinstance(recycle, dict) and not recycle["trafo"] and ppci["internal"]["DLF"].size:
         DLF, buses_ordered_bfs_nets = ppci["internal"]['DLF'], \
-                                      ppci["internal"]['buses_ord_bfs_nets']
+            ppci["internal"]['buses_ord_bfs_nets']
     else:
         ## build matrices
         DLF, buses_ordered_bfs_nets = _make_bibc_bcbv(bus, branch, graph)
         if isinstance(recycle, dict) and not recycle["trafo"]:
             ppci["internal"]['DLF'], \
-            ppci["internal"]['buses_ord_bfs_nets'] = DLF, buses_ordered_bfs_nets
+                ppci["internal"]['buses_ord_bfs_nets'] = DLF, buses_ordered_bfs_nets
 
     return ppci, DLF, buses_ordered_bfs_nets
 
@@ -262,7 +261,7 @@ def _bfswpf(DLF, bus, gen, branch, baseMVA, Ybus, Sbus, V0, ref, pv, pq, buses_o
     gen_pv = np.in1d(gen[:, GEN_BUS], pv) & (gen[:, GEN_STATUS] > 0)
     qg_lim = np.zeros(ngen, dtype=bool)  # initialize generators which violated Q limits
 
-    Iinj = np.conj(Sbus / V0) - Ysh * V0   # Initial current injections
+    Iinj = np.conj(Sbus / V0) - Ysh * V0  # Initial current injections
 
     # initiate reference voltage vector
     V_ref = np.ones(nobus, dtype=complex)
