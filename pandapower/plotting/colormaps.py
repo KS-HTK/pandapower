@@ -79,8 +79,7 @@ def cmap_continuous(cmap_list):
         raise UserWarning("install matplotlib to use this function")
     min_loading = cmap_list[0][0]
     max_loading = cmap_list[-1][0]
-    cmap_colors = [((loading-min_loading)/(max_loading - min_loading), color) for
-                 (loading, color) in cmap_list]
+    cmap_colors = [((loading-min_loading)/(max_loading - min_loading), color) for (loading, color) in cmap_list]
     cmap = LinearSegmentedColormap.from_list('name', cmap_colors)
     norm = Normalize(min_loading, max_loading)
     return cmap, norm

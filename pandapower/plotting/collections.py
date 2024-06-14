@@ -7,6 +7,7 @@ import re
 import ast
 import sys
 import copy
+import logging
 import inspect
 import geojson
 from typing import Callable, TYPE_CHECKING
@@ -43,10 +44,6 @@ from pandapower.plotting.patch_makers import load_patches, node_patches, gen_pat
 from pandapower.plotting.plotting_toolbox import _rotate_dim2, coords_from_node_geodata, \
     position_on_busbar, get_index_array
 
-try:
-    import pandaplan.core.pplog as logging
-except ImportError:
-    import logging
 
 logger = logging.getLogger(__name__)
 
@@ -105,7 +102,7 @@ def create_annotation_collection(texts, coords, size, prop=None, **kwargs):
         **kwargs** - Any other keyword-arguments will be passed to the PatchCollection.
     """
     if not MATPLOTLIB_INSTALLED:
-        soft_dependency_error(str(sys._getframe().f_code.co_name)+"()", "matplotlib")
+        soft_dependency_error(f"{sys._getframe().f_code.co_name}()", "matplotlib")
     tp = []
     # we convert TextPaths to PathPatches to create a PatchCollection
     if hasattr(size, "__iter__"):

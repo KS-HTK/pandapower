@@ -1,23 +1,19 @@
 # -*- coding: utf-8 -*-
-
+import functools
 # Copyright (c) 2016-2024 by University of Kassel and Fraunhofer Institute for Energy Economics
 # and Energy System Technology (IEE), Kassel. All rights reserved.
 
 import gc
+import logging
 import warnings
+from typing import Union, Set, List, Dict, Any
 
 import numpy as np
 import pandas as pd
 from packaging.version import Version
 
-from pandapower.auxiliary import ets_to_element_types
-
 from pandapower import __version__
-
-try:
-    import pandaplan.core.pplog as logging
-except ImportError:
-    import logging
+from pandapower.auxiliary import ets_to_element_types, pandapowerNet
 
 logger = logging.getLogger(__name__)
 
@@ -265,12 +261,14 @@ def get_connected_buses(net, buses, consider=("l", "s", "t", "t3", "i"), respect
     if "l" in consider or 'line' in consider:
         in_service_constr = net.line.in_service if respect_in_service else True
         opened_lines = set(net.switch.loc[(~net.switch.closed) & (
-            net.switch.et == "l")].element.unique()) if respect_switches else set()
+                net.switch.et == "l")].element.unique()) if respect_switches else set()
         connected_fb_lines = set(net.line.index[(
-            net.line.from_bus.isin(buses)) & ~net.line.index.isin(opened_lines) &
-            in_service_constr])
+                                                    net.line.from_bus.isin(buses)) & ~net.line.index.isin(
+            opened_lines) &
+                                                in_service_constr])
         connected_tb_lines = set(net.line.index[(
-            net.line.to_bus.isin(buses)) & ~net.line.index.isin(opened_lines) & in_service_constr])
+                                                    net.line.to_bus.isin(buses)) & ~net.line.index.isin(
+            opened_lines) & in_service_constr])
         cb |= set(net.line[net.line.index.isin(connected_tb_lines)].from_bus)
         cb |= set(net.line[net.line.index.isin(connected_fb_lines)].to_bus)
 
@@ -283,13 +281,15 @@ def get_connected_buses(net, buses, consider=("l", "s", "t", "t3", "i"), respect
     if "t" in consider or 'trafo' in consider:
         in_service_constr = net.trafo.in_service if respect_in_service else True
         opened_trafos = set(net.switch.loc[(~net.switch.closed) & (
-            net.switch.et == "t")].element.unique()) if respect_switches else set()
+                net.switch.et == "t")].element.unique()) if respect_switches else set()
         connected_hvb_trafos = set(net.trafo.index[(
-            net.trafo.hv_bus.isin(buses)) & ~net.trafo.index.isin(opened_trafos) &
-            in_service_constr])
+                                                       net.trafo.hv_bus.isin(buses)) & ~net.trafo.index.isin(
+            opened_trafos) &
+                                                   in_service_constr])
         connected_lvb_trafos = set(net.trafo.index[(
-            net.trafo.lv_bus.isin(buses)) & ~net.trafo.index.isin(opened_trafos) &
-            in_service_constr])
+                                                       net.trafo.lv_bus.isin(buses)) & ~net.trafo.index.isin(
+            opened_trafos) &
+                                                   in_service_constr])
         cb |= set(net.trafo.loc[net.trafo.index.isin(connected_lvb_trafos)].hv_bus.values)
         cb |= set(net.trafo.loc[net.trafo.index.isin(connected_hvb_trafos)].lv_bus.values)
 
@@ -298,14 +298,14 @@ def get_connected_buses(net, buses, consider=("l", "s", "t", "t3", "i"), respect
         in_service_constr3w = net.trafo3w.in_service if respect_in_service else True
         if respect_switches:
             opened_buses_hv = set(net.switch.loc[
-                ~net.switch.closed & (net.switch.et == "t3") &
-                net.switch.bus.isin(net.trafo3w.hv_bus)].bus.unique())
+                                      ~net.switch.closed & (net.switch.et == "t3") &
+                                      net.switch.bus.isin(net.trafo3w.hv_bus)].bus.unique())
             opened_buses_mv = set(net.switch.loc[
-                ~net.switch.closed & (net.switch.et == "t3") &
-                net.switch.bus.isin(net.trafo3w.mv_bus)].bus.unique())
+                                      ~net.switch.closed & (net.switch.et == "t3") &
+                                      net.switch.bus.isin(net.trafo3w.mv_bus)].bus.unique())
             opened_buses_lv = set(net.switch.loc[
-                ~net.switch.closed & (net.switch.et == "t3") &
-                net.switch.bus.isin(net.trafo3w.lv_bus)].bus.unique())
+                                      ~net.switch.closed & (net.switch.et == "t3") &
+                                      net.switch.bus.isin(net.trafo3w.lv_bus)].bus.unique())
         else:
             opened_buses_hv = opened_buses_mv = opened_buses_lv = set()
 
@@ -440,13 +440,13 @@ def get_connected_switches(net, buses, consider=('b', 'l', 't', 't3', 'i'), stat
         **buses** (single integer or iterable of ints)
 
     OPTIONAL:
-        **consider** (iterable, ("l", "s", "t", "t3)) -  Determines, which types of connections
+        **consider** (iterable, ("l", "b", "t", "t3)) -  Determines, which types of connections
                                                       will be considered.
-                                                      l: lines
-                                                      b: bus-bus-switches
-                                                      t: transformers
-                                                      t3: 3W transformers
-                                                      i: impedance
+                                                      l: bus-line-switch
+                                                      b: bus-bus-switch
+                                                      t: bus-transformer-switch
+                                                      t3: bus-3W transformer-switch
+                                                      i: bus-impedance
 
         **status** (string, ("all", "closed", "open")) -  Determines, which switches will
                                                             be considered
@@ -488,7 +488,7 @@ def get_connected_switches(net, buses, consider=('b', 'l', 't', 't3', 'i'), stat
                 element_type = ets_to_element_types(et)
                 sw_idx = net.switch.index[(net.switch.et == et) & switch_selection]
                 element_buses = net[element_type].loc[list(net.switch.element.loc[sw_idx]),
-                                                      bebd[element_type]]
+                bebd[element_type]]
                 isin_df = pd.concat([element_buses[col].isin(buses) for col in element_buses],
                                     axis=1)
                 cs |= set(sw_idx[isin_df.any(axis=1)])
@@ -497,7 +497,7 @@ def get_connected_switches(net, buses, consider=('b', 'l', 't', 't3', 'i'), stat
 
 def get_connected_elements_dict(
         net, buses, respect_switches=True, respect_in_service=False, include_empty_lists=False,
-        element_types=None, **kwargs):
+        element_types=None, **kwargs) -> Dict[str, List[int]]:
     """Returns a dict of lists of connected elements.
 
     Parameters
@@ -518,11 +518,70 @@ def get_connected_elements_dict(
         are analyzed. That list of all element types can also be restricted by key word arguments
         "connected_buses", "connected_bus_elements", "connected_branch_elements" and
         "connected_other_elements", by default None
+    kwargs : dict, optional
+        accepts any arguments that can be passed to get_connected_switches
+        (e.g. consider, status, include_element_connections)
+        may contain "explicit=True" to only return elements directly connected to the given buses.
 
     Returns
     -------
     dict[str,list]
         elements connected to given buses
+    """
+    if "explicit" in kwargs and kwargs["explicit"]:
+        return _get_connected_elements_explicit(
+            net, buses, element_types, respect_switches, respect_in_service, include_empty_lists,
+            **kwargs)
+    if element_types is None:
+        element_types = pp_elements(
+            bus=kwargs.get("connected_buses", True),
+            bus_elements=kwargs.get("connected_bus_elements", True),
+            branch_elements=kwargs.get("connected_branch_elements", True),
+            other_elements=kwargs.get("connected_other_elements", True),
+            cost_tables=False,
+            res_elements=False
+        )
+    connected = dict()
+    for et in element_types:
+        if et == "bus":
+            conn = get_connected_buses(
+                net,
+                buses,
+                respect_switches=respect_switches,
+                respect_in_service=respect_in_service
+            )
+        elif et == "switch":
+            conn = get_connected_switches(
+                net,
+                buses,
+                consider=kwargs.get("consider", ("b", "l", "t", "t3")),
+                status=kwargs.get("status", "all"),
+                include_element_connections=kwargs.get("include_element_connections", False)
+            )
+        else:
+            conn = get_connected_elements(
+                net,
+                et,
+                buses,
+                respect_switches=respect_switches,
+                respect_in_service=respect_in_service
+            )
+        if include_empty_lists or len(conn):
+            connected[et] = list(conn)
+    return connected
+
+
+def _get_connected_elements_explicit(
+    net: pandapowerNet,
+    buses: Union[Set[int], List[int]],
+    element_types: List[str] = None,
+    respect_switches: bool = False,
+    respect_in_service: bool = False,
+    include_empty_lists: bool = False,
+    **kwargs: Dict[Any, Any]
+) -> Dict[str, List[int]]:
+    """
+        Selects only elements directly connected to the given buses. No elements that rely on other buses are returned.
     """
     if element_types is None:
         element_types = pp_elements(
@@ -531,21 +590,65 @@ def get_connected_elements_dict(
             branch_elements=kwargs.get("connected_branch_elements", True),
             other_elements=kwargs.get("connected_other_elements", True),
             cost_tables=False,
-            res_elements=False)
-
-    connected = dict()
+            res_elements=False
+        )
+    connected = {"bus": list(buses)}
+    get_elements = functools.partial(
+        get_connected_elements,
+        net=net,
+        buses=buses,
+        respect_switches=respect_switches,
+        respect_in_service=respect_in_service
+    )
     for et in element_types:
-        if et == "bus":
-            conn = get_connected_buses(net, buses, respect_switches=respect_switches,
-                                       respect_in_service=respect_in_service)
-        elif et == "switch":
-            conn = get_connected_switches(net, buses)
+        if et == "bus" or et == "switch":
+            continue
+        if et == "trafo":
+            conn = get_elements(element_type=et)
+            drop = set()
+            for id_ in conn:
+                if net.trafo.loc[id_, "hv_bus"] not in buses or net.trafo.loc[id_, "lv_bus"] not in buses:
+                    drop.add(id_)
+            conn = conn.difference(drop)
+        elif et == "trafo3w":
+            conn = get_elements(element_type=et)
+            drop = set()
+            for id_ in conn:
+                if (net.trafo3w.loc[id_, "hv_bus"] not in buses or
+                    net.trafo3w.loc[id_, "mv_bus"] not in buses or
+                    net.trafo3w.loc[id_, "lv_bus"] not in buses
+                ):
+                    drop.add(id_)
+            conn = conn.difference(drop)
         else:
-            conn = get_connected_elements(
-                net, et, buses, respect_switches=respect_switches,
-                respect_in_service=respect_in_service)
+            conn = get_elements(element_type=et)
         if include_empty_lists or len(conn):
             connected[et] = list(conn)
+    # switches handled last so checking for the elements won't fail due to order.
+    if "switch" in element_types:
+        conn = get_connected_switches(
+            net,
+            buses,
+            consider=kwargs.get("consider", ("b", "l", "t", "t3")),
+            status=kwargs.get("status", "all"),
+            include_element_connections=kwargs.get("include_element_connections", False)
+        )
+        drop = set()
+        for sid in conn:
+            et = net.switch.loc[sid, "et"]
+            element_id = net.switch.loc[sid, "element"]
+            bus_id = net.switch.loc[sid, "bus"]
+            if bus_id not in buses:
+                drop.add(sid)
+                continue
+            # replace with match case if python 3.9 is dropped from support
+            for table, type_ in zip(["bus", "line", "trafo", "trafo3w"], ["b", "l", "t", "t3"]):
+                if et == type_ and element_id not in connected[table]:
+                    drop.add(sid)
+                    break
+        conn = conn.difference(drop)
+        if include_empty_lists or len(conn):
+            connected["switch"] = list(conn)
     return connected
 
 
@@ -574,8 +677,8 @@ def get_connecting_branches(net, buses1, buses2, branch_elements=None):
 def get_gc_objects_dict():
     """
     This function is based on the code in mem_top module
-    Summarize object types that are tracket by the garbage collector in the moment.
-    Useful to test if there are memoly leaks.
+    Summarize object types that are tracked by the garbage collector at the moment.
+    Useful to test if there are memory leaks.
     :return: dictionary with keys corresponding to types and values to the number of objects of the
     type
     """
@@ -600,7 +703,7 @@ def false_elm_links(net, element_type, col, target_element_type):
     """
     if isinstance(target_element_type, str):
         return net[element_type][col].index[~net[element_type][col].isin(net[
-            target_element_type].index)]
+                                                                             target_element_type].index)]
     else:  # target_element_type is an iterable, e.g. a Series such as net["poly_cost"]["et"]
         df = pd.DataFrame({"element": net[element_type][col].values, "et": target_element_type,
                            "indices": net[element_type][col].index.values})
@@ -608,7 +711,7 @@ def false_elm_links(net, element_type, col, target_element_type):
         false_links = pd.Index([])
         for et in df.index:
             false_links = false_links.union(pd.Index(df.loc[et].indices.loc[
-                ~df.loc[et].element.isin(net[et].index)]))
+                                                         ~df.loc[et].element.isin(net[et].index)]))
         return false_links
 
 
@@ -708,9 +811,9 @@ def element_bus_tuples(bus_elements=True, branch_elements=True, res_elements=Fal
                  ("motor", "bus")]
     if branch_elements:
         ebts += [("line", "from_bus"), ("line", "to_bus"), ("impedance", "from_bus"),
-                ("impedance", "to_bus"), ("switch", "bus"), ("trafo", "hv_bus"),
-                ("trafo", "lv_bus"), ("trafo3w", "hv_bus"), ("trafo3w", "mv_bus"),
-                ("trafo3w", "lv_bus"), ("dcline", "from_bus"), ("dcline", "to_bus")]
+                 ("impedance", "to_bus"), ("switch", "bus"), ("trafo", "hv_bus"),
+                 ("trafo", "lv_bus"), ("trafo3w", "hv_bus"), ("trafo3w", "mv_bus"),
+                 ("trafo3w", "lv_bus"), ("dcline", "from_bus"), ("dcline", "to_bus")]
     if res_elements:
         elements_without_res = ["switch", "measurement", "asymmetric_load", "asymmetric_sgen"]
         ebts += [("res_" + ebt[0], ebt[1]) for ebt in ebts if ebt[0] not in elements_without_res]
@@ -751,5 +854,7 @@ def count_elements(net, return_empties=False, **kwargs):
     line    9
     dtype: int32
     """
-    return pd.Series({et: net[et].shape[0] for et in pp_elements(**kwargs) if return_empties or \
-                      bool(net[et].shape[0])}, dtype=np.int64)
+    return pd.Series(
+        {et: net[et].shape[0] for et in pp_elements(**kwargs) if return_empties or bool(net[et].shape[0])},
+        dtype=np.int64
+    )

@@ -8,6 +8,7 @@ import pytest
 import pandapower as pp
 import pandapower.toolbox
 from pandapower import networks as nw
+from pandapower.toolbox import create_test_network
 
 
 def test_get_element_indices():
@@ -227,6 +228,12 @@ def test_count_elements():
     received = pandapower.toolbox.count_elements(net, return_empties=True)
     assert len(received.index) == len(pandapower.toolbox.pp_elements())
     assert set(received.index) == pandapower.toolbox.pp_elements()
+
+
+def test_get_connected_elements_dict():
+    net = create_test_network()
+
+
 
 
 if __name__ == '__main__':
