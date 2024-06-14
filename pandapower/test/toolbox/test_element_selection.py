@@ -8,7 +8,6 @@ import pytest
 import pandapower as pp
 import pandapower.toolbox
 from pandapower import networks as nw
-from pandapower.toolbox import create_test_network
 
 
 def test_get_element_indices():
@@ -231,7 +230,40 @@ def test_count_elements():
 
 
 def test_get_connected_elements_dict():
-    net = create_test_network()
+    from pandapower.toolbox import get_connected_elements_dict as gced
+    net = nw.example_simple()
+    # Tests with explicit = True
+    ced = gced(net, [0], explicit=True)
+    assert ced == {"bus": [0], "ext_grid": [0]}
+
+    ced = gced(net, [0, 1], explicit=True)
+    assert ced == {"bus": [0, 1], "line": [0], "ext_grid": [0]}
+
+    ced = gced(net, [0, 1, 2], explicit=True)
+    assert ced == {"bus": [0, 1, 2], "line": [0], "ext_grid": [0], "shunt": [0], "switch": [0]}
+
+    ced = gced(net, [1, 2, 3], explicit=True)
+    assert ced == {"bus": [1, 2, 3], "shunt": [0], "switch": [0], "trafo": [0]}
+
+    ced = gced(net, [3, 4, 5, 6], explicit=True)
+    assert ced == {
+        "bus": [3, 4, 5, 6],
+        "gen": [0],
+        "line": [1, 3],
+        "load": [0],
+        "sgen": [0],
+        "switch": [1, 2, 3, 6, 7]
+    }
+
+    ced = gced(net, [3, 4, 5, 6], explicit=True, respect_switches=False)
+    assert ced == {
+        "bus": [3, 4, 5, 6],
+        "gen": [0],
+        "line": [1, 2, 3],
+        "load": [0],
+        "sgen": [0],
+        "switch": [1, 2, 3, 4, 5, 6, 7]
+    }
 
 
 

@@ -620,6 +620,13 @@ def _get_connected_elements_explicit(
                 ):
                     drop.add(id_)
             conn = conn.difference(drop)
+        elif et == "line":
+            conn = get_elements(element_type=et)
+            drop = set()
+            for id_ in conn:
+                if net.line.loc[id_, "from_bus"] not in buses or net.line.loc[id_, "to_bus"] not in buses:
+                    drop.add(id_)
+            conn = conn.difference(drop)
         else:
             conn = get_elements(element_type=et)
         if include_empty_lists or len(conn):
