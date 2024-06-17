@@ -243,6 +243,53 @@ def test_select_subnet():
     subnet = pp.select_subnet(net2, buses | elements)
     assert net2.switch[net2.switch.et == 'b'].index.isin(subnet.switch.index).all()
 
+    # This network has switches of type 'l' and 't'
+    net3 = nw.create_cigre_network_mv()
+
+    # Do nothing
+    same_net = pp.select_subnet(net3, net3.bus.index, include_floating_elements=False, respect_switches=False)
+    assert pandapower.toolbox.dataframes_equal(net3.bus, same_net.bus)
+    assert pandapower.toolbox.dataframes_equal(net3.switch, same_net.switch)
+    assert pandapower.toolbox.dataframes_equal(net3.trafo, same_net.trafo)
+    assert pandapower.toolbox.dataframes_equal(net3.line, same_net.line)
+    assert pandapower.toolbox.dataframes_equal(net3.load, same_net.load)
+    assert pandapower.toolbox.dataframes_equal(net3.ext_grid, same_net.ext_grid)
+    same_net2 = pp.select_subnet(net3, net3.bus.index, include_results=True,
+                                 keep_everything_else=True, respect_switches=False, include_floating_elements=False)
+    assert pandapower.toolbox.nets_equal(net3, same_net2)
+
+    # Remove everything
+    empty = pp.select_subnet(net3, set(), include_floating_elements=False)
+    assert len(empty.bus) == 0
+    assert len(empty.line) == 0
+    assert len(empty.load) == 0
+    assert len(empty.trafo) == 0
+    assert len(empty.switch) == 0
+    assert len(empty.ext_grid) == 0
+
+    # Should keep all trafo ('t') switches when buses are included
+    hv_buses = set(net3.trafo.hv_bus)
+    lv_buses = set(net3.trafo.lv_bus)
+    trafo_switch_buses = set(net3.switch[net3.switch.et == 't'].bus)
+    subnet = pp.select_subnet(net3, hv_buses | lv_buses | trafo_switch_buses, include_floating_elements=False)
+    assert net3.switch[net3.switch.et == 't'].index.isin(subnet.switch.index).all()
+
+    # Should keep all line ('l') switches when buses are included
+    from_bus = set(net3.line.from_bus)
+    to_bus = set(net3.line.to_bus)
+    line_switch_buses = set(net3.switch[net3.switch.et == 'l'].bus)
+    subnet = pp.select_subnet(net3, from_bus | to_bus | line_switch_buses, include_floating_elements=False, respect_switches=False)
+    assert net3.switch[net3.switch.et == 'l'].index.isin(subnet.switch.index).all()
+
+    # This network has switches of type 'b'
+    net4 = nw.create_cigre_network_lv()
+
+    # Should keep all bus-to-bus ('b') switches when buses are included
+    buses = set(net4.switch[net4.switch.et == 'b'].bus)
+    elements = set(net4.switch[net4.switch.et == 'b'].element)
+    subnet = pp.select_subnet(net4, buses | elements, include_floating_elements=False)
+    assert net4.switch[net4.switch.et == 'b'].index.isin(subnet.switch.index).all()
+
 
 def test_add_zones_to_elements():
     net = nw.create_cigre_network_mv()

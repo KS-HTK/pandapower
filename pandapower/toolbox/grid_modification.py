@@ -44,7 +44,8 @@ def select_subnet(
         include_switch_buses: bool = False,
         include_results: bool = False,
         keep_everything_else: bool = False,
-        include_floating_elements: Optional[bool] = None
+        include_floating_elements: Optional[bool] = None,
+        **kwargs
     ):
     """
     Selects a subnet by a list of bus indices and returns a net with all elements
@@ -64,20 +65,22 @@ def select_subnet(
     :param include_floating_elements: If True, elements that have connections to buses not in the buses param are
         included in the subnet. The missing buses are also included but nothing connected to them is.
     :type include_floating_elements: bool, default False
+    :param kwargs: Additional keyword arguments are passed to get_connected_elements_dict
+    :type kwargs: dict
     """
     if include_floating_elements is None:
         return _select_subnet_classic(net, buses, include_switch_buses, include_results, keep_everything_else)
-    return _select_subnet_new(net, buses, include_results, include_floating_elements)
+    return _select_subnet_new(net, buses, include_results, include_floating_elements, **kwargs)
 
 
-def _select_subnet_new(net, buses, include_results, include_floating_elements):
+def _select_subnet_new(net, buses, include_results, include_floating_elements, **kwargs):
     """only designed for pandapowerNet"""
     buses = set(buses)
     connected_elements = {}
     if include_floating_elements:
-        connected_elements.update(get_connected_elements_dict(net, buses))
+        connected_elements.update(get_connected_elements_dict(net, buses, **kwargs))
     else:
-        connected_elements.update(get_connected_elements_dict(net, buses, explicit=True))
+        connected_elements.update(get_connected_elements_dict(net, buses, explicit=True, **kwargs))
     p2 = create_empty_network(add_stdtypes=False)
     p2["std_types"] = copy.deepcopy(net["std_types"])
 

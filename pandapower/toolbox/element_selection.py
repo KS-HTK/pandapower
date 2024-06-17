@@ -650,7 +650,7 @@ def _get_connected_elements_explicit(
                 continue
             # replace with match case if python 3.9 is dropped from support
             for table, type_ in zip(["bus", "line", "trafo", "trafo3w"], ["b", "l", "t", "t3"]):
-                if et == type_ and element_id not in connected[table]:
+                if et == type_ and (table not in connected.keys() or element_id not in connected[table]):
                     drop.add(sid)
                     break
         conn = conn.difference(drop)
